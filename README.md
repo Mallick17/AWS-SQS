@@ -157,31 +157,6 @@ Think of CloudTrail as tracking “who did what to the queue or messages” and 
 
 **Key Point**: Data events track the lifecycle of messages (sent, received, deleted). You need to enable them in CloudTrail, and they’re great for tracking message flows.
 
----
-
-## 4. CloudWatch Logs: What Your App Does with Messages
-
-**What They Are**: CloudWatch Logs store details about what your app does after receiving a message (e.g., processing an order). SQS doesn’t send logs here directly—your app (like a Lambda function) must write them.
-
-**Purpose**: To debug issues (e.g., “Why did this order fail?”) or track business details (e.g., “Which orders were processed?”).
-
-**Example Scenario**:
-- **Scenario**: Your Lambda function processes orders from `OrderQueue`. It logs whether it succeeded or failed.
-- **What Happens**: Lambda reads a message, tries to process it, and writes to CloudWatch Logs.
-- **What CloudWatch Logs Show**:
-  - Success: 
-    ```
-    2025-08-11 10:32 AM: Processed order 12345 successfully
-    ```
-  - Failure: 
-    ```
-    2025-08-11 10:33 AM: Failed to process message msg123: Bad order data
-    ```
-- **Why It Helps**: If Jane’s order fails, you can check CloudWatch to see the error (“Bad order data”) and fix it (e.g., correct the app’s input).
-
-**Key Point**: CloudWatch Logs are like your app’s diary, showing what it did with each message. You control what gets logged.
-
-
 <details>
   <summary>Simplified It</summary>
 
@@ -258,6 +233,30 @@ Think of CloudTrail as tracking “who did what to the queue or messages” and 
 ---
   
 </details>
+
+---
+
+## 4. CloudWatch Logs: What Your App Does with Messages
+
+**What They Are**: CloudWatch Logs store details about what your app does after receiving a message (e.g., processing an order). SQS doesn’t send logs here directly—your app (like a Lambda function) must write them.
+
+**Purpose**: To debug issues (e.g., “Why did this order fail?”) or track business details (e.g., “Which orders were processed?”).
+
+**Example Scenario**:
+- **Scenario**: Your Lambda function processes orders from `OrderQueue`. It logs whether it succeeded or failed.
+- **What Happens**: Lambda reads a message, tries to process it, and writes to CloudWatch Logs.
+- **What CloudWatch Logs Show**:
+  - Success: 
+    ```
+    2025-08-11 10:32 AM: Processed order 12345 successfully
+    ```
+  - Failure: 
+    ```
+    2025-08-11 10:33 AM: Failed to process message msg123: Bad order data
+    ```
+- **Why It Helps**: If Jane’s order fails, you can check CloudWatch to see the error (“Bad order data”) and fix it (e.g., correct the app’s input).
+
+**Key Point**: CloudWatch Logs are like your app’s diary, showing what it did with each message. You control what gets logged.
 
 ---
 
