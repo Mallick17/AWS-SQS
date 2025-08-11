@@ -821,3 +821,526 @@ In simple terms: SSM Agent logs are like notes taken right on the server during 
 **One-Liner**: “SSM Agent logs local details on servers for troubleshooting commands, while CloudWatch centralizes them for monitoring, alerts, and security checks.”
   
 </details>
+
+---
+
+## Logs of SES
+
+<details>
+  <summary>Logs of SES</summary>
+
+## 1. Where SES Logging Comes From
+
+Amazon Simple Email Service (SES) is used to send transactional or marketing emails. SES itself doesn’t store logs for you to browse later, but logging comes from two main sources:
+
+* **CloudTrail Logs**: Automatically records SES API activity (e.g., sending an email, verifying a domain, changing settings).
+* **Event Destinations** (via Configuration Sets): Lets you capture real-time email events—like sends, deliveries, bounces, and complaints—into CloudWatch Logs, SNS, or EventBridge.
+
+In simple terms: CloudTrail shows *who did what with SES*, while Event Destinations track *what happened to each email*.
+
+---
+
+## 2. SES CloudTrail Logs
+
+**What They Log**: Every API call to SES—whether it’s sending an email, verifying an address, or updating a configuration set.
+
+**Purpose**: To see which users or apps sent emails, changed settings, or accessed SES features.
+
+**Usefulness**: Security auditing, compliance proof, and identifying unauthorized SES usage.
+
+**Examples and Scenarios** (Using a café analogy where SES sends out “daily menus” to customers):
+
+### Example 1: Email Sent via API
+
+* **Scenario**: Café system sends daily menu to customers.
+* **What Happens**: SES `SendEmail` API call is logged in CloudTrail.
+* **What CloudTrail Logs**:
+
+  ```
+  EventTime: 2025-08-11 09:00 AM
+  EventName: SendEmail
+  SourceIPAddress: 198.51.100.10
+  RequestParameters: { "ToAddresses": ["customer@example.com"] }
+  ```
+* **Why It Helps**: Confirms when and who triggered the email send.
+
+### Example 2: Domain Verification
+
+* **Scenario**: Marketing team verifies new domain “cafedelight.com”.
+* **What CloudTrail Logs**:
+
+  ```
+  EventName: VerifyDomainIdentity
+  UserIdentity: MarketingManager
+  ```
+* **Why It Helps**: Tracks changes to verified senders for compliance.
+
+---
+
+## 3. SES Event Destination Logs
+
+**What They Log**: Real-time events for every sent email—send, delivery, bounce, complaint, reject.
+
+**Purpose**: Monitor email performance, detect deliverability problems, and spot spam/abuse patterns.
+
+**Usefulness**: Improve deliverability, fix errors, and meet legal reporting needs.
+
+**Examples and Scenarios**:
+
+### Example 1: Bounce Event
+
+* **Scenario**: Daily menu email to `user@oldmail.com` bounces.
+* **What Happens**: SES sends a bounce log to CloudWatch Logs.
+* **What It Logs**:
+
+  ```
+  EventType: Bounce
+  BounceType: Permanent
+  BounceSubType: NoEmail
+  Email: user@oldmail.com
+  Timestamp: 2025-08-11T09:05:00Z
+  ```
+* **Why It Helps**: Remove bad addresses to protect sender reputation.
+
+### Example 2: Complaint Event
+
+* **Scenario**: Customer marks daily menu email as spam.
+* **What Happens**: Complaint event logged.
+* **What It Logs**:
+
+  ```
+  EventType: Complaint
+  ComplaintFeedbackType: Abuse
+  Email: spamreport@example.com
+  ```
+* **Why It Helps**: Detect content issues or targeting mistakes.
+
+---
+
+## 4. CloudWatch Logs + SES
+
+When SES Event Destinations send events to **CloudWatch Logs**:
+
+* **Centralized View**: See bounces, complaints, and deliveries for all campaigns.
+* **Searchable**: Filter by recipient, event type, or campaign name.
+* **Alerting**: Set alarms for high bounce or complaint rates.
+
+**Example**: Alarm triggers if bounce rate > 5% in 1 hour.
+
+---
+
+## 5. Simple Setup Steps
+
+1. **CloudTrail Logs**:
+
+   * Enabled by default—check CloudTrail console for SES events.
+   * Create a trail to store logs in S3 and optionally send to CloudWatch.
+
+2. **Event Destinations**:
+
+   * In SES Console → Configuration Sets → Add Event Destination.
+   * Choose CloudWatch Logs, SNS, or EventBridge as the target.
+   * Select event types (Send, Delivery, Bounce, Complaint).
+
+3. **CloudWatch Alerts**:
+
+   * Use metrics (e.g., Bounce rate) to set alerts.
+
+---
+
+## 6. Real-World Use Case: Stopping an Email Abuse Incident
+
+**Problem**: Your SES account is suddenly flagged for high complaint rates.
+
+1. **CloudTrail Logs**: Show a spike in `SendEmail` API calls from an unfamiliar IP.
+2. **Event Destination Logs**: Reveal complaints from 30% of recipients.
+3. **Fix**: Block API key, investigate source, and adjust email lists.
+
+---
+
+## 7. Explaining to a Manager
+
+**Analogy**: SES is like the café’s mailroom sending menus to customers.
+
+* CloudTrail is the *sign-in book*—records who came in and sent mail.
+* Event Destinations are the *mail tracker*—shows whether each letter was delivered, returned, or complained about.
+
+**One-Liner**: “CloudTrail tells us *who sent the email*, while Event Destinations tell us *what happened to it after sending*.”
+
+---
+  
+</details>
+
+---
+
+## Logs of ACM Certificate
+
+<details>
+  <summary>Logs of ACM Certificate</summary>
+
+## 1. Where ACM Logging Comes From
+
+AWS Certificate Manager (ACM) manages SSL/TLS certificates for your domains. ACM logging comes from two main sources:
+
+* **CloudTrail Logs**: Records all ACM API actions—like requesting, renewing, deleting, or attaching/detaching a certificate to a resource.
+* **Certificate Transparency (CT) Logs**: For public certificates, ACM automatically publishes details to global CT logs unless you explicitly opt out. These are public ledgers designed to detect mis-issued or rogue certificates.
+
+In simple terms: CloudTrail shows *who did what* with certificates in your AWS account, while CT logs show *to the whole world* that a public certificate was issued.
+
+---
+
+## 2. ACM CloudTrail Logs
+
+**What They Log**: Every ACM API call—whether via console, CLI, SDK, or automated process.
+
+**Purpose**: Track operational and security-related changes to certificates.
+
+**Usefulness**: Detect unauthorized certificate requests, confirm renewals, and trace configuration changes.
+
+**Examples and Scenarios** (Using a café analogy where ACM is like securing the café’s website so customers can browse menus safely):
+
+### Example 1: New Certificate Request
+
+* **Scenario**: IT team requests a new SSL certificate for `cafe-delight.com`.
+* **What CloudTrail Logs**:
+
+  ```
+  EventTime: 2025-08-11 09:10 AM
+  EventName: RequestCertificate
+  UserIdentity: it-admin
+  RequestParameters: { "DomainName": "cafe-delight.com" }
+  ```
+* **Why It Helps**: Confirms the request was intentional and by the right person.
+
+### Example 2: Certificate Deletion
+
+* **Scenario**: An unused staging certificate is deleted.
+* **What CloudTrail Logs**:
+
+  ```
+  EventName: DeleteCertificate
+  CertificateArn: arn:aws:acm:ap-south-1:123456789012:certificate/abc-123
+  ```
+* **Why It Helps**: Tracks when and why a certificate was removed—important in case a service suddenly fails.
+
+---
+
+## 3. Certificate Transparency Logs
+
+**What They Log**: Publicly accessible entries for every issued public ACM certificate—domain name, certificate details, and issuance date.
+
+**Purpose**: Detect unauthorized or fraudulent certificate issuance for your domains.
+
+**Usefulness**: Security teams can monitor CT logs to catch unexpected certificates before they’re used in phishing or impersonation attacks.
+
+**Examples and Scenarios**:
+
+### Example 1: Normal Issuance
+
+* **Scenario**: ACM issues a new certificate for `cafedelight.com`.
+* **What CT Logs Show**:
+
+  ```
+  Domain: cafedelight.com
+  IssuedBy: Amazon
+  Timestamp: 2025-08-11T09:15Z
+  ```
+* **Why It Helps**: Confirms legitimate issuance for audit records.
+
+### Example 2: Suspicious Issuance
+
+* **Scenario**: CT logs reveal a certificate for `cafedelight-login.com` you never approved.
+* **Why It Helps**: Early warning to investigate and potentially revoke the certificate.
+
+---
+
+## 4. CloudWatch Logs + ACM
+
+While ACM itself doesn’t push logs directly to CloudWatch, you can:
+
+* Forward CloudTrail logs for ACM to CloudWatch Logs for central monitoring.
+* Create metric filters (e.g., for `RequestCertificate` events) and set alerts.
+
+**Example**: Alert if more than 2 new certificates are requested in an hour.
+
+---
+
+## 5. Simple Setup Steps
+
+1. **CloudTrail Logs**:
+
+   * Ensure CloudTrail is enabled and recording ACM API calls.
+   * Store logs in S3 and optionally forward to CloudWatch Logs.
+
+2. **CT Log Monitoring**:
+
+   * Use tools like AWS Certificate Manager’s console “Transparency” section, or external monitors (e.g., crt.sh, Google CT Search) to watch for your domains.
+
+3. **Alerts**:
+
+   * Create CloudWatch alarms for unexpected ACM activity in CloudTrail.
+
+---
+
+## 6. Real-World Use Case: Catching a Rogue Certificate
+
+**Problem**: A certificate for your brand name appears in CT logs unexpectedly.
+
+1. **CT Logs**: Reveal certificate for `secure-cafe-delight.com` not requested by your team.
+2. **CloudTrail Logs**: No matching request in your AWS account → likely issued elsewhere.
+3. **Fix**: Contact the issuing CA to revoke and investigate for phishing.
+
+---
+
+## 7. Explaining to a Manager
+
+**Analogy**: ACM is like the café’s security badge system for the website.
+
+* CloudTrail is the *internal logbook* of who issued, renewed, or revoked badges.
+* Certificate Transparency is a *public notice board* where every new badge is listed for anyone to see—helping spot fakes.
+
+**One-Liner**: “CloudTrail shows internal certificate actions; CT logs are the public record that keeps everyone honest.”
+
+</details>
+
+---
+
+## Logs of Secrets Manager Audit
+
+<details>
+  <summary>Logs of Secrets Manager Audit</summary>
+
+## 1. Where Secrets Manager Logging Comes From
+
+AWS Secrets Manager stores and manages sensitive information like passwords, API keys, and database credentials. Logging comes mainly from:
+
+* **CloudTrail Logs**: Records every API operation—creating, retrieving, updating, deleting, rotating, or restoring secrets.
+
+In simple terms: CloudTrail is your *security camera* for Secrets Manager, showing *who accessed or changed a secret and when*.
+
+---
+
+## 2. Secrets Manager CloudTrail Logs
+
+**What They Log**:
+Every action that can be taken on a secret—whether it’s read, created, rotated, deleted, or restored.
+
+**Purpose**:
+To audit secret usage, detect suspicious activity, and ensure only authorized users or services handle sensitive data.
+
+**Usefulness**:
+Identify leaks, track compliance, and investigate incidents quickly.
+
+**Examples and Scenarios** (Using a café analogy where Secrets Manager is the locked recipe book for the café’s signature dishes):
+
+### Example 1: Retrieving a Secret
+
+* **Scenario**: The café’s order system retrieves the database password to process online orders.
+* **What CloudTrail Logs**:
+
+  ```
+  EventTime: 2025-08-11 09:20 AM
+  EventName: GetSecretValue
+  UserIdentity: orders-app
+  SecretId: prod/db/password
+  ```
+* **Why It Helps**: Confirms which app or person accessed the secret and when.
+
+### Example 2: Rotating a Secret
+
+* **Scenario**: IT rotates the database password every 30 days.
+* **What CloudTrail Logs**:
+
+  ```
+  EventName: RotateSecret
+  SecretId: prod/db/password
+  Status: SUCCESS
+  ```
+* **Why It Helps**: Proves secret rotation happened as part of security policy.
+
+### Example 3: Deleting a Secret
+
+* **Scenario**: A staging environment secret is removed.
+* **What CloudTrail Logs**:
+
+  ```
+  EventName: DeleteSecret
+  SecretId: staging/api/key
+  RecoveryWindowInDays: 30
+  ```
+* **Why It Helps**: Tracks deletions to ensure no critical secret is removed without approval.
+
+---
+
+## 3. CloudWatch Logs + Secrets Manager
+
+Secrets Manager doesn’t send logs directly to CloudWatch, but you can:
+
+* Forward CloudTrail logs to CloudWatch Logs for real-time monitoring.
+* Create metric filters for sensitive operations like `GetSecretValue` or `DeleteSecret`.
+
+**Example**: Alert if `GetSecretValue` is called from an unusual IAM user or outside office hours.
+
+---
+
+## 4. Simple Setup Steps
+
+1. **Enable CloudTrail**:
+
+   * Ensure it records management events for Secrets Manager.
+   * Store logs in S3, optionally forward to CloudWatch Logs.
+
+2. **Set Alerts**:
+
+   * Create metric filters for unusual secret access patterns.
+   * Integrate with SNS or EventBridge for real-time notifications.
+
+3. **Review Periodically**:
+
+   * Regularly audit `GetSecretValue` and `RotateSecret` events.
+
+---
+
+## 5. Real-World Use Case: Detecting a Credential Leak
+
+**Problem**: A database shows suspicious login attempts.
+
+1. **CloudTrail Logs**: Show `GetSecretValue` was called from an unknown IP using a developer’s credentials.
+2. **Action**: Rotate the secret immediately and disable the compromised IAM user.
+3. **Prevention**: Add alerts for all `GetSecretValue` calls from non-production IPs.
+
+---
+
+## 6. Explaining to a Manager
+
+**Analogy**: Secrets Manager is like a locked safe holding the café’s secret recipes.
+
+* CloudTrail is the *access log* at the safe’s door—every time it’s opened, closed, or its contents changed, the event is recorded.
+
+**One-Liner**: “CloudTrail for Secrets Manager lets us see exactly who touched a secret, when, and why—critical for preventing and investigating leaks.”
+
+
+  
+</details>
+
+
+---
+
+## Logs of AWS KMS
+
+<details>
+  <summary>Logs of AWS KMS</summary>
+
+## 1. Where KMS Logging Comes From
+
+AWS Key Management Service (KMS) manages encryption keys for securing your data. Logging comes mainly from:
+
+* **CloudTrail Logs**: Records every KMS API call—like encrypting, decrypting, generating data keys, and rotating keys.
+* **CloudWatch Logs**: Monitors the health and status of services that use KMS, and can also store encrypted logs using KMS keys.
+
+In simple terms: CloudTrail shows *who used or changed a key*, while CloudWatch helps track *how KMS is performing and where keys are used to secure other logs*.
+
+---
+
+## 2. KMS CloudTrail Logs
+
+**What They Log**:
+All KMS-related API activity—`Encrypt`, `Decrypt`, `GenerateDataKey`, `DescribeKey`, `EnableKey`, `DisableKey`, `RotateKey`, etc.
+
+**Purpose**:
+To audit key usage, detect unauthorized encryption or decryption, and ensure compliance with security policies.
+
+**Usefulness**:
+Helps meet standards like PCI DSS and HIPAA, supports forensic investigations, and detects suspicious key activity.
+
+**Examples and Scenarios** (Using a café analogy where KMS keys are the master keys to lock/unlock the café’s storage rooms):
+
+### Example 1: Encrypting Data
+
+* **Scenario**: The café’s order system encrypts daily sales reports before storing them in S3.
+* **What CloudTrail Logs**:
+
+  ```
+  EventTime: 2025-08-11 09:30 AM
+  EventName: Encrypt
+  KeyId: arn:aws:kms:ap-south-1:123456789012:key/abc-123
+  EncryptionContext: { "Department": "Finance" }
+  ```
+* **Why It Helps**: Confirms which key was used, by which system, and for what purpose.
+
+### Example 2: Decrypting Data
+
+* **Scenario**: Finance team decrypts last month’s sales data for reporting.
+* **What CloudTrail Logs**:
+
+  ```
+  EventName: Decrypt
+  KeyId: arn:aws:kms:ap-south-1:123456789012:key/abc-123
+  ```
+* **Why It Helps**: Tracks sensitive data access for compliance.
+
+### Example 3: Key Rotation
+
+* **Scenario**: Security policy enforces annual rotation of encryption keys.
+* **What CloudTrail Logs**:
+
+  ```
+  EventName: RotateKey
+  KeyId: arn:aws:kms:ap-south-1:123456789012:key/abc-123
+  ```
+* **Why It Helps**: Proves compliance with key rotation rules.
+
+---
+
+## 3. CloudWatch Logs + KMS
+
+While KMS doesn’t push operational logs directly to CloudWatch, you can:
+
+* Monitor the health and integration status of services using KMS (e.g., CloudWatch alarms for failed encryption attempts).
+* Use KMS keys to encrypt sensitive CloudWatch log data at rest.
+* Create metric filters for unusual activity like unexpected decryption events.
+
+**Example**: Alert if `Decrypt` calls spike outside business hours.
+
+---
+
+## 4. Simple Setup Steps
+
+1. **Enable CloudTrail**:
+
+   * Ensure management and data events are recorded for KMS.
+   * Store in S3 and optionally forward to CloudWatch Logs.
+
+2. **CloudWatch Monitoring**:
+
+   * Set metric filters on forwarded CloudTrail logs for key events.
+   * Create alarms for anomalies (e.g., multiple `DisableKey` calls).
+
+3. **Key Policies**:
+
+   * Restrict who can call sensitive APIs like `Decrypt` or `ScheduleKeyDeletion`.
+
+---
+
+## 5. Real-World Use Case: Investigating Suspicious Key Use
+
+**Problem**: You suspect someone decrypted sensitive files without authorization.
+
+1. **CloudTrail Logs**: Show `Decrypt` calls from an unusual IAM user at 2 AM.
+2. **CloudWatch Alarms**: Triggered due to after-hours decryption.
+3. **Action**: Disable the compromised key, revoke user access, and rotate secrets encrypted with it.
+
+---
+
+## 6. Explaining to a Manager
+
+**Analogy**: KMS keys are like the master keys to every locked room in the café.
+
+* CloudTrail is the *key logbook*—every time someone locks, unlocks, or changes the key, it’s recorded.
+* CloudWatch is the *security control room*—watching for unusual key use and protecting other logs with encryption.
+
+**One-Liner**: “CloudTrail tells us exactly who used or changed an encryption key, while CloudWatch lets us spot unusual patterns and protect our other logs with KMS encryption.”
+
+---
+  
+</details>
