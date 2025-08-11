@@ -1,5 +1,8 @@
 # AWS - Simple Query Service (SQS)
 ## Logs of SQS
+<details>
+  <summary>Logs of SQS</summary>
+
 ## 1. Where SQS Logs Come From
 
 Amazon SQS (Simple Queue Service) is a system for sending and receiving messages between applications, like passing notes in a busy office. It doesn’t create logs on its own, but two AWS services help track what’s happening:
@@ -487,3 +490,176 @@ To see these logs in action:
 
 ---
 
+</details>
+
+## Logs of SNS
+
+<details>
+  <summary>Logs of SNS</summary>
+
+## 1. Where SNS Logging Comes From
+
+Amazon Simple Notification Service (SNS) is like a messaging system that sends notifications (e.g., alerts or updates) to subscribers, such as emails, apps, or other services. SNS doesn't create logs on its own, but uses other AWS services to track activities:
+
+- **AWS CloudTrail**: Records all API calls to SNS, like creating topics or publishing messages.
+- **Amazon CloudWatch**: Tracks metrics (numbers like message counts) and can store logs from applications or integrated services.
+
+In simple terms: CloudTrail is a log of who did what with SNS, while CloudWatch monitors how well it's performing.
+
+---
+
+## 2. CloudTrail + SNS
+
+**What CloudTrail Logs**: All SNS API calls, including creating/deleting topics, publishing messages, and managing subscriptions. This covers configuration changes (management events, automatic) and message publishing (data events, need to enable).
+
+**Purpose**: Audit changes to topics, track who published messages, and monitor subscriptions for security and compliance.
+
+**Usefulness**: Confirm actions like who created a topic or sent a message; detect issues like unauthorized publishes.
+
+**Examples and Scenarios** (Using a café alert system where SNS "topics" are like group chats for sending updates to customers):
+
+### Example 1: CreateTopic (Creating a Topic)
+- **Scenario**: Café manager Sarah creates an SNS topic called `OrderAlerts` to send order updates to customers.
+- **What Happens**: Sarah sets up the topic in the AWS Console.
+- **What CloudTrail Logs** (Simplified):
+  ```json
+  {
+    "Time": "2025-08-11 10:00 AM",
+    "Action": "CreateTopic",
+    "Topic": "OrderAlerts",
+    "User": "Sarah",
+    "Region": "us-east-1"
+  }
+  ```
+- **Why It Helps**: If alerts aren't working, check who created the topic and its settings.
+
+### Example 2: DeleteTopic (Deleting a Topic)
+- **Scenario**: Mike accidentally deletes `OrderAlerts` during cleanup.
+- **What Happens**: Mike removes the topic in the AWS Console.
+- **What CloudTrail Logs**:
+  ```json
+  {
+    "Time": "2025-08-11 10:15 AM",
+    "Action": "DeleteTopic",
+    "Topic": "OrderAlerts",
+    "User": "Mike",
+    "Region": "us-east-1"
+  }
+  ```
+- **Why It Helps**: If customers stop getting alerts, see if the topic was deleted and by whom.
+
+### Example 3: Subscribe (Adding a Subscriber)
+- **Scenario**: Customer Jane subscribes her email to `OrderAlerts` for updates.
+- **What Happens**: Jane confirms subscription via email link.
+- **What CloudTrail Logs**:
+  ```json
+  {
+    "Time": "2025-08-11 10:20 AM",
+    "Action": "Subscribe",
+    "Topic": "OrderAlerts",
+    "Subscriber": "jane@email.com",
+    "User": "AppRole",
+    "Region": "us-east-1"
+  }
+  ```
+- **Why It Helps**: Verify who subscribed; detect unwanted subscriptions.
+
+### Example 4: Publish (Sending a Message)
+- **Scenario**: Café app publishes a message to `OrderAlerts`: "Your coffee is ready!"
+- **What Happens**: The app sends the alert to all subscribers.
+- **What CloudTrail Logs**:
+  ```json
+  {
+    "Time": "2025-08-11 10:25 AM",
+    "Action": "Publish",
+    "Topic": "OrderAlerts",
+    "MessageID": "msg456",
+    "User": "AppRole",
+    "Region": "us-east-1"
+  }
+  ```
+- **Why It Helps**: Confirm the message was sent; track publishing for audits (no content logged, just metadata).
+
+**Key Point**: CloudTrail logs help audit and troubleshoot SNS actions. Enable data events for Publish if needed.
+
+---
+
+## 3. CloudWatch Metrics and Logs + SNS
+
+**What CloudWatch Provides**: SNS automatically sends metrics (e.g., message counts, delivery success/failures) to CloudWatch. For logs, integrate via CloudTrail (send API logs) or your app (e.g., Lambda processing SNS messages).
+
+**Purpose**: Monitor SNS health, like delivery rates, and log details for deeper troubleshooting.
+
+**Usefulness**: Set alarms for high failures; debug why messages aren't delivered.
+
+**Examples and Scenarios** (Continuing the café alert system):
+
+### Example 1: Monitoring Delivery Success (Metric)
+- **Scenario**: Café sends 100 alerts via `OrderAlerts`, but only 90 reach customers due to bad emails.
+- **What Happens**: SNS tracks the metric "NumberOfNotificationsDelivered".
+- **What CloudWatch Shows** (Simplified Metric):
+  ```
+  Metric: NumberOfNotificationsDelivered = 90 (out of 100 published)
+  Time: 2025-08-11 10:30 AM
+  ```
+- **Why It Helps**: Spot low delivery rates and investigate invalid subscribers.
+
+### Example 2: Tracking Failures (Metric)
+- **Scenario**: 10 alerts fail because of network issues.
+- **What Happens**: SNS tracks "NumberOfNotificationsFailed".
+- **What CloudWatch Shows**:
+  ```
+  Metric: NumberOfNotificationsFailed = 10
+  Time: 2025-08-11 10:35 AM
+  ```
+- **Why It Helps**: Set an alarm to notify if failures spike, then fix the issue.
+
+### Example 3: Publish Size (Metric)
+- **Scenario**: Alerts with big attachments exceed limits, causing throttles.
+- **What Happens**: SNS tracks "PublishSize".
+- **What CloudWatch Shows**:
+  ```
+  Metric: PublishSize = 256 KB (average per message)
+  Time: 2025-08-11 10:40 AM
+  ```
+- **Why It Helps**: Ensure messages aren't too large; optimize for cost/efficiency.
+
+### Example 4: Application Processing Log (Log)
+- **Scenario**: A Lambda function handles SNS messages but fails for one due to bad data.
+- **What Happens**: Lambda writes to CloudWatch Logs.
+- **What CloudWatch Logs Show**:
+  ```
+  10:45 AM: Failed to process alert for Order 123: Invalid email format
+  ```
+- **Why It Helps**: Debug why an alert wasn't acted on after delivery.
+
+**Key Point**: CloudWatch metrics auto-track SNS performance; logs add custom details for full visibility.
+
+---
+
+## 4. Simple Setup Steps
+
+1. **CloudTrail**: Create a trail in AWS Console > CloudTrail; enable data events for SNS Publish.
+2. **CloudWatch Metrics**: View in Console > CloudWatch > Metrics > SNS; set alarms.
+3. **CloudWatch Logs**: Send CloudTrail logs to a log group; add logging in your app.
+
+---
+
+## 5. Real-World Use Case: Troubleshooting Failed Alerts
+
+**Problem**: Customers complain about missing order alerts.
+
+1. **CloudTrail**: Check Publish log to confirm message was sent.
+2. **CloudWatch Metrics**: See high NumberOfNotificationsFailed—bad subscriber emails.
+3. **CloudWatch Logs**: App log shows processing error for delivered ones.
+4. **Fix**: Clean subscribers and update app.
+
+---
+
+## 6. Explaining to a Manager
+
+**Analogy**: SNS is like a café PA system announcing orders. CloudTrail logs who set it up or used it (e.g., "Sarah announced coffee ready"). CloudWatch watches if announcements were heard (metrics like success rate) and notes issues (logs like "Mic glitch").
+
+**One-Liner**: “CloudTrail audits SNS API actions for security, while CloudWatch monitors delivery metrics and logs for operational health and fixes.”
+  
+</details>
