@@ -359,4 +359,3 @@ To see these logs in action:
 
 ---
 
-If you want a diagram to visualize how SQS, CloudTrail, and CloudWatch work together (e.g., showing messages flowing and logs being created), let me know, and I’ll generate one after your confirmation!
